@@ -10,17 +10,32 @@ from matplotlib import pyplot as plt
 from adjustText import adjust_text
 from collections import Counter
 
-
+# List of functions:
+# frmt
+# mylog
+# count_redup
+# scramble
+# read_words
+# proc_file
+# print_res_list
+# scatter_plot
+# get_time_str
+# do_redup_by_rank
+# do_redup_scatter
+# do_scramble
+# [no function] - Uses the command line arguments in a condition tree to do one of three functions: do_redup_by_rank, do_redup_scatter, do_scramble. Also contains a global variable.
 
 def frmt(myfloat,dec=3):
   form="{:."+str(dec)+"f}"
   return form.format(myfloat)
 
-def mylog(msg, islog):
-  if islog:
+# Call from do_scramble.
+def mylog(msg, islog): # Msg is the res of line processed from proc_file preceded by RES, and islog is a global variable hardcoded to True.
+  if islog: # Always true in this version of the code.
     print("LOG "+msg)
 
 def count_redup(words,islog):
+	# The seven lines below just initialize varaibles for use in the function.
 	n_redup=0
 	n_partial=0
 	n_triple=0
@@ -28,6 +43,7 @@ def count_redup(words,islog):
 	previous_part=False
 	redup_words=list()
 	partial_words=list()
+	
 	for i in range(0,len(words)-1):
 	  dist=Levenshtein.distance(words[i],words[i+1])
 	  if dist==0  :#and len(words[i])>1: # ignore single char reduplication (see TXB)
@@ -59,7 +75,8 @@ def count_redup(words,islog):
 	    previous_part=False
 	    previous_red=False
 	return n_redup,n_partial,n_triple,redup_words,partial_words
-	
+
+# Called by proc_file.
 def scramble(mylist):
   newlist=mylist
   for i in range(0,len(newlist)):
@@ -69,13 +86,14 @@ def scramble(mylist):
     newlist[j]=newlist[i]
     newlist[i]=temp
   return newlist
-  
-def read_words(infile):
+
+# Called by proc_file.
+def read_words(infile): # The function parameter is an individual text file.
   with_spaces=''
-  with open(infile, 'r') as myfile:
-    text=myfile.read()
-    if 'vms/' in infile:  # ivtt VMS file
-      text=re.sub('<[^>]*>',' ',text)
+  with open(infile, 'r') as myfile: # Opens the input file and assigns a file wrapper.
+    text=myfile.read() # Reads the entire contents of the file into a variable.
+    if 'vms/' in infile:  # ivtt VMS file # This tries to find a substring in the file address of the input file. This is a specific folder in the repository.
+      text=re.sub('<[^>]*>',' ',text) # A regex to make a substitution to the entire text. 
     else:
       text=text.lower() # v101 is case sensitive
     clean_string=' '+text.replace('\n', ' ').replace('\r', ' ')
@@ -112,9 +130,9 @@ def read_words(infile):
   mylog(" ",is_log)
   return words
 
-
+# Called by do_redup_scatter and do_scramble. 
 def proc_file(infile, N_SCR):
-  words=read_words(infile)
+  words=read_words(infile) # Calls the function read_words on a text file.
   n_redup,n_partial,n_triple,red_words,part_words=count_redup(words,is_log)
   mylog( "ORIG "+infile+" "+str(n_redup)+" "+frmt(100.0*n_redup/float(len(words)-1))+\
      " "+str(n_partial)+" "+frmt(100.0*n_partial/float(len(words)-1))+\
@@ -200,6 +218,8 @@ def get_time_str():
   ts=time.time()
   return datetime.fromtimestamp(ts).strftime('%m%d%H%M%S')
 
+
+# One the basic functions called by a command line argument. Argv[2] is the parameter.
 def do_redup_by_rank(files):
   f = plt.figure()
   plt.ylim(-1,20)
@@ -208,7 +228,7 @@ def do_redup_by_rank(files):
   nline=0
   styles=('ro-','bs-','go-')
   texts = []
-  for f in files:
+  for f in files: # The iterator of a text file should be a line.
     words=read_words(f)
     cnt=Counter(words)
     print(cnt.most_common(N_WORDS))
@@ -238,6 +258,8 @@ def do_redup_by_rank(files):
             arrowprops=dict(arrowstyle="-", color='#444477', lw=0.5))
   plt.savefig('out/rank_'+fname+'_'+get_time_str()+'.png')
 
+	
+# One the basic functions called by a command line argument. Argv[2:] is the parameter.
 def do_redup_scatter(files):
   print( "_data_ couples red %red partial %partial triple %triple scr.red scr.%r scr.partial scr.%partial scr.triple scr.%triple")
   tot_couples=0
@@ -256,15 +278,16 @@ def do_redup_scatter(files):
   scatter_plot(allres,3,5,"Full Reduplication %","Partial Reduplication %",prefix,15)
   scatter_plot(allres,5,7,"Partial Reduplication %","Triple Reduplication %","triple"+prefix,12)
 
+# One the basic functions called by a command line argument. Argv[2:] is the parameter.
 def do_scramble(files):
-  allres=list()
-  for f in files:
-    res=proc_file(f,20)
-    allres.append(res)
+  allres=list() # Variable to store the result of processed lines.
+  for f in files: # Loops through every file in a list of files.
+    res=proc_file(f,20) # Each file fed into scramble with a fixed variable of unknown purpose. Res is a temporary variable to store the result of scramble.
+    allres.append(res) # Res added to list allres, which stores the process files?
   ratios=list()
   error=""
-  for res in allres:
-    mylog("RES "+str(res),is_log)
+  for res in allres: # Loops through every item in list of results from scramble.
+    mylog("RES "+str(res),is_log) # Calls the function mylog, which has a very simple output of printing a string
     red=0
     if (res[3]>0):
       red=res[3]/res[9]
@@ -283,7 +306,8 @@ def do_scramble(files):
   scatter_plot(ratios,1,3,"Full Reduplication Actual/Scrambled","Triple Reduplication Actual/Scrambled","scr3_",20)
   print("CHECK: "+error)
 
-is_log=True
+# Starting lines fo code which set one global variable and process command lines arguments.
+is_log=True # A global variable, presumedly to set whether the output is logarithmic or not. Hardcoded but could be altered if needed?
 if sys.argv[1]=='redup_scatter':
   do_redup_scatter(sys.argv[2:])
 elif sys.argv[1]=='redup_by_rank':
